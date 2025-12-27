@@ -12,28 +12,28 @@ class Chat extends Component
     // Array untuk menyimpan riwayat chat (Pesan User & Pesan Bot)
     public $messages = [];
 
-    // Fungsi: Dijalankan saat tombol "New Chat" ditekan
+    // Dijalankan saat tombol "New Chat" ditekan
     public function newChat()
     {
         $this->messages = []; // Kosongkan array pesan
         $this->userMessage = ''; // Kosongkan input
     }
 
-    // Fungsi: Dijalankan saat kirim pesan
+    // Dijalankan saat kirim pesan
     public function sendMessage()
     {
-        // 1. Validasi: Jangan kirim jika kosong
+        // Validasi: Jangan kirim jika kosong
         if (trim($this->userMessage) === '') {
             return;
         }
 
-        // 2. Simpan pesan User ke array
+        // Simpan pesan User ke array
         $this->messages[] = [
             'role' => 'user',
             'content' => $this->userMessage
         ];
 
-        // 3. (SEMENTARA) Buat balasan bot otomatis (Dummy)
+        // (SEMENTARA) Buat balasan bot otomatis (Dummy)
         // Nanti di sini kita ganti dengan koneksi ke Ollama
         $this->messages[] = [
             'role' => 'assistant',
@@ -42,6 +42,19 @@ class Chat extends Component
 
         // 4. Kosongkan input setelah kirim
         $this->userMessage = '';
+    }
+
+    public function editMessage($index, $newContent)
+    {
+        // Update pesan di array lokal
+        $this->messages[$index]['content'] = $newContent;
+
+        if ($this->messages[$index]['role'] === 'user') {
+            // Hapus semua pesan setelah pesan yang diedit
+            $this->messages = array_slice($this->messages, 0, $index + 1);
+
+            $this->sendMessage();
+        }
     }
 
     public function render()
