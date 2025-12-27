@@ -35,15 +35,55 @@
         </div>
 
         {{-- username --}}
-        <div class="p-4 border-t border-zinc-800">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold">
-                    {{ substr(auth()->user()->name ?? 'U', 0, 1) }}
-                </div>
-                <div class="text-sm font-medium">
-                    {{ auth()->user()->name ?? 'Guest' }}
+        <div class="p-4 border-t border-zinc-800 relative" x-data="{ open: false }">
+
+            {{-- DROPDOWN MENU --}}
+            <div
+                x-show="open"
+                @click.outside="open = false"
+                x-transition:enter="transition ease-out duration-100"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-75"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-2"
+                class="absolute bottom-full left-0 w-full px-4 mb-2 z-50"
+                style="display: none;"
+            >
+                <div class="bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden">
+
+                    {{-- Tombol Logout --}}
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            <span>Log out</span>
+                        </button>
+                    </form>
                 </div>
             </div>
+
+            {{-- USER TRIGGER BUTTON --}}
+            <button
+                @click="open = !open"
+                class="w-full flex items-center gap-3 hover:bg-zinc-800 p-2 rounded-lg transition text-left group"
+            >
+                {{-- Avatar --}}
+                <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow-sm">
+                    {{ substr(auth()->user()->name ?? 'U', 0, 1) }}
+                </div>
+
+                {{-- Nama User --}}
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-white truncate group-hover:text-emerald-400 transition-colors">
+                        {{ auth()->user()->name ?? 'Guest' }}
+                    </div>
+                </div>
+            </button>
         </div>
     </aside>
 
