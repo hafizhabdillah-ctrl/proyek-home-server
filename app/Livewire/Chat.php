@@ -3,58 +3,103 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use App\Models\Chat as ChatModel;
+use App\Models\Message;
+use Illuminate\Support\Facades\Auth;
 
 class Chat extends Component
 {
-    // Variabel untuk menampung teks yang diketik user
     public $userMessage = '';
-
-    // Array untuk menyimpan riwayat chat (Pesan User & Pesan Bot)
     public $messages = [];
+    public $chatId = null;
+    public $histories = [];
 
-    // Dijalankan saat tombol "New Chat" ditekan
+    // --- Tambahkan Query String agar URL rapi (Opsional tapi bagus) ---
+    // protected $queryString = ['chatId'];
+
+    public function mount()
+    {
+        // Pastikan saat pertama buka, history termuat
+        $this->loadHistories();
+
+        // Jika ada chatId di URL/Session, load chatnya (Opsional logic)
+    }
+
+    public function loadHistories()
+    {
+        $this->histories = ChatModel::where('user_id', Auth::id())
+            ->latest()
+            ->get();
+    }
+
     public function newChat()
     {
-        $this->messages = []; // Kosongkan array pesan
-        $this->userMessage = ''; // Kosongkan input
+        // 1. Reset semua variabel state
+        $this->chatId = null;
+        $this->messages = [];
+        $this->userMessage = '';
+
+        // 2. (Opsional) Reset validasi jika ada
+        $this->resetValidation();
     }
 
-    // Dijalankan saat kirim pesan
+    public function loadChat($id)
+    {
+        $chat = ChatModel::where('id', $id)->where('user_id', Auth::id())->first();
+
+        if ($chat) {
+            $this->chatId = $chat->id;
+            // Load messages
+            $this->messages = $chat->messages()->oldest()->get()
+                ->map(fn($msg) => ['role' => $msg->role, 'content' => $msg->content])
+                ->toArray();
+        }
+    }
+
     public function sendMessage()
     {
-        // Validasi: Jangan kirim jika kosong
-        if (trim($this->userMessage) === '') {
-            return;
+        // Validasi input kosong
+        if (trim($this->userMessage) === '') return;
+
+        // Simpan pesan user ke array tampilan sementara
+        $this->messages[] = ['role' => 'user', 'content' => $this->userMessage];
+
+        // LOGIC PENTING: Cek apakah ini chat baru?
+        if (!$this->chatId) {
+            // Buat Chat Baru di Database
+            $createdChat = ChatModel::create([
+                'user_id' => Auth::id(),
+                'title' => substr($this->userMessage, 0, 30) // Judul otomatis dari pesan pertama
+            ]);
+
+            // Set chatId ke ID yang baru dibuat
+            $this->chatId = $createdChat->id;
+
+            // Refresh sidebar history agar judul baru muncul
+            $this->loadHistories();
         }
 
-        // Simpan pesan User ke array
-        $this->messages[] = [
+        // Simpan pesan ke database (sekarang $this->chatId pasti sudah ada isinya)
+        Message::create([
+            'chat_id' => $this->chatId,
             'role' => 'user',
             'content' => $this->userMessage
-        ];
+        ]);
 
-        // (SEMENTARA) Buat balasan bot otomatis (Dummy)
-        // Nanti di sini kita ganti dengan koneksi ke Ollama
-        $this->messages[] = [
-            'role' => 'assistant',
-            'content' => 'Halo! Saya menerima pesan Anda: "' . $this->userMessage . '". Saat ini saya belum terhubung ke otak AI, tapi fitur chat sudah jalan!'
-        ];
-
-        // 4. Kosongkan input setelah kirim
+        // Reset input field
+        $currentMessage = $this->userMessage;
         $this->userMessage = '';
-    }
 
-    public function editMessage($index, $newContent)
-    {
-        // Update pesan di array lokal
-        $this->messages[$index]['content'] = $newContent;
+        // --- SIMULASI BALASAN AI ---
+        $responseText = "Balasan untuk: " . $currentMessage;
 
-        if ($this->messages[$index]['role'] === 'user') {
-            // Hapus semua pesan setelah pesan yang diedit
-            $this->messages = array_slice($this->messages, 0, $index + 1);
+        $this->messages[] = ['role' => 'assistant', 'content' => $responseText];
 
-            $this->sendMessage();
-        }
+        Message::create([
+            'chat_id' => $this->chatId,
+            'role' => 'assistant',
+            'content' => $responseText
+        ]);
     }
 
     public function render()

@@ -1,30 +1,47 @@
 <div class="flex h-screen bg-zinc-900 text-white overflow-hidden">
 
     {{-- sidebar sebelah kiri --}}
-    <aside class="w-64 bg-zinc-950 flex flex-col border-r border-zinc-800">
+    <aside class="h-screen w-64 bg-zinc-950 flex flex-col border-r border-zinc-800">
+        {{-- 1. Tambahkan h-screen agar sidebar full sampai bawah --}}
+
         <div class="p-4">
-            <button wire:click="newChat" class="w-full flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-lg transition">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                <span class="font-medium">New Chat</span>
+            <button
+                type="button" wire:click="newChat"
+                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded mb-4 transition">
+                + New Chat
             </button>
         </div>
 
-        {{-- riwayat chat --}}
-        <div class="flex-1 overflow-y-auto px-2 space-y-2">
-            <div class="text-xs font-medium text-zinc-500 px-2 py-2">Today</div>
-            <button class="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg truncate">
-                Learn Livewire
-            </button>
-            <button class="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg truncate">
-                How to make Friend Rice
-            </button>
-        </div>
+        {{-- chat history --}}
+        {{-- 2. Tambahkan class styling scrollbar di sini --}}
+        <div class="flex-1 overflow-y-auto px-2 space-y-2 mt-2
+        [&::-webkit-scrollbar]:w-2
+        [&::-webkit-scrollbar-track]:bg-transparent
+        [&::-webkit-scrollbar-thumb]:bg-zinc-700
+        [&::-webkit-scrollbar-thumb]:rounded-full
+        hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600">
 
-        <div class="flex-1 overflow-y-auto px-2 space-y-2">
+            @if(count($histories) > 0)
+                <div class="text-xs font-medium text-zinc-500 px-2 py-2">History</div>
+
+                @foreach($histories as $history)
+                    <button
+                        wire:click="loadChat({{ $history->id }})"
+                        class="w-full text-left px-3 py-2 text-sm rounded-lg truncate transition
+                   {{ $chatId === $history->id ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200' }}"
+                    >
+                        {{ $history->title ?? 'New Chat' }}
+                    </button>
+                @endforeach
+            @else
+                <div class="text-xs text-zinc-600 px-4 mt-4 text-center">
+                    Belum ada riwayat chat.
+                </div>
+            @endif
         </div>
 
         {{-- tombol settings --}}
-        <div class="px-2 pt-2 mb-2">
+        <div class="px-2 pt-2 mb-2 mt-auto">
             <button class="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white rounded-lg transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -36,8 +53,7 @@
 
         {{-- username --}}
         <div class="p-4 border-t border-zinc-800 relative" x-data="{ open: false }">
-
-            {{-- DROPDOWN MENU --}}
+            {{-- DROPDOWN MENU (Tetap sama) --}}
             <div
                 x-show="open"
                 @click.outside="open = false"
@@ -51,8 +67,6 @@
                 style="display: none;"
             >
                 <div class="bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden">
-
-                    {{-- Tombol Logout --}}
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition cursor-pointer">
@@ -67,17 +81,14 @@
                 </div>
             </div>
 
-            {{-- USER TRIGGER BUTTON --}}
+            {{-- USER TRIGGER BUTTON (Tetap sama) --}}
             <button
                 @click="open = !open"
                 class="w-full flex items-center gap-3 hover:bg-zinc-800 p-2 rounded-lg transition text-left group"
             >
-                {{-- Avatar --}}
                 <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow-sm">
                     {{ substr(auth()->user()->name ?? 'U', 0, 1) }}
                 </div>
-
-                {{-- Nama User --}}
                 <div class="flex-1 min-w-0">
                     <div class="text-sm font-medium text-white truncate group-hover:text-emerald-400 transition-colors">
                         {{ auth()->user()->name ?? 'Guest' }}
