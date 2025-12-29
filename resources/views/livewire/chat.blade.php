@@ -2,7 +2,6 @@
 
     {{-- sidebar sebelah kiri --}}
     <aside class="h-screen w-64 bg-zinc-950 flex flex-col border-r border-zinc-800">
-        {{-- 1. Tambahkan h-screen agar sidebar full sampai bawah --}}
 
         <div class="p-4">
             <button
@@ -13,25 +12,105 @@
         </div>
 
         {{-- chat history --}}
-        {{-- 2. Tambahkan class styling scrollbar di sini --}}
-        <div class="flex-1 overflow-y-auto px-2 space-y-2 mt-2
-        [&::-webkit-scrollbar]:w-2
-        [&::-webkit-scrollbar-track]:bg-transparent
-        [&::-webkit-scrollbar-thumb]:bg-zinc-700
-        [&::-webkit-scrollbar-thumb]:rounded-full
-        hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600">
 
+        <div
+            x-data="{ activeMenuId: null }"
+            class="flex-1 overflow-y-auto px-2 space-y-1 mt-2
+            [&::-webkit-scrollbar]:w-2
+            [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:bg-zinc-700
+            [&::-webkit-scrollbar-thumb]:rounded-full"
+        >
             @if(count($histories) > 0)
-                <div class="text-xs font-medium text-zinc-500 px-2 py-2">History</div>
+                <div class="text-xs font-medium text-zinc-500 px-2 py-2 mb-1">History</div>
 
                 @foreach($histories as $history)
-                    <button
-                        wire:click="loadChat({{ $history->id }})"
-                        class="w-full text-left px-3 py-2 text-sm rounded-lg truncate transition
-                   {{ $chatId === $history->id ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200' }}"
-                    >
-                        {{ $history->title ?? 'New Chat' }}
-                    </button>
+                    <div
+                        x-data="{isRenaming: false, newName: '{{ $history->title }}'}"
+                        class="group relative flex items-center rounded-lg hover:bg-zinc-800 transition-colors {{ $chatId === $history->id ? 'bg-zinc-800' : '' }}">
+                        <button
+                            x-show="!isRenaming"
+                            wire:click="loadChat({{ $history->id }})"
+                            class="flex-1 text-left px-3 py-2 text-sm truncate w-full relative z-0 focus:outline-none {{ $chatId === $history->id ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200' }}"
+                        >
+                            @if($history->is_pinned)
+                                <svg class="inline-block w-3 h-3 mr-1 text-zinc-400 rotate-45" fill="currentColor" viewBox="0 0 24 24"><path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" /></svg>
+                            @endif
+                            {{ $history->title ?? 'New Chat' }}
+                        </button>
+
+                        {{-- Mode Rename (Input Form) --}}
+                        <form
+                            x-show="isRenaming"
+                            @submit.prevent="$wire.renameChat({{ $history->id }}, newName); isRenaming = false;"
+                            class="flex-1 px-1 py-1"
+                            style="display: none;"
+                        >
+                            <input
+                                x-model="newName"
+                                @keydown.escape="isRenaming = false; newName = '{{ $history->title }}'"
+                                @click.outside="isRenaming = false; newName = '{{ $history->title }}'"
+                                type="text"
+                                class="w-full bg-zinc-950 text-white text-sm px-2 py-1 rounded border border-zinc-600 focus:outline-none focus:border-emerald-500"
+                                autofocus
+                            >
+                        </form>
+
+                        {{-- Tombol Titik Tiga (Menu Trigger) --}}
+                        <div class="absolute right-1 z-10" x-show="!isRenaming">
+                            <button
+                                @click="activeMenuId = (activeMenuId === {{ $history->id }} ? null : {{ $history->id }})"
+                                class="p-1 rounded-md transition-opacity duration-200 focus:outline-none"
+                                :class="{
+                            'opacity-100 bg-zinc-700 text-white': activeMenuId === {{ $history->id }},
+                            'opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-white hover:bg-zinc-700': activeMenuId === null,
+                            'opacity-0': activeMenuId !== null && activeMenuId !== {{ $history->id }}
+                        }"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                            </button>
+
+                            {{-- Dropdown Menu --}}
+                            <div
+                                x-show="activeMenuId === {{ $history->id }}"
+                                @click.outside="activeMenuId = null"
+                                x-transition.origin.top.right
+                                class="absolute right-0 top-full mt-1 w-32 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-50 overflow-hidden"
+                                style="display: none;"
+                            >
+                                <div class="flex flex-col py-1">
+                                    {{-- Action: Pin --}}
+                                    <button
+                                        wire:click="togglePin({{ $history->id }})"
+                                        @click="activeMenuId = null"
+                                        class="text-left px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2 focus:outline-none"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+                                        {{ $history->is_pinned ? 'Unpin' : 'Pin' }}
+                                    </button>
+
+                                    {{-- Action: Rename --}}
+                                    <button
+                                        @click="isRenaming = true; activeMenuId = null; $nextTick(() => $el.closest('.group').querySelector('input').focus())"
+                                        class="text-left px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                        Rename
+                                    </button>
+
+                                    {{-- Action Delete --}}
+                                    <button
+                                        wire:click="confirmDelete({{ $history->id }})"
+                                        @click="activeMenuId = null"
+                                        class="text-left px-3 py-2 text-xs text-red-400 hover:bg-red-900/30 hover:text-red-300 flex items-center gap-2 border-t border-zinc-800 mt-1"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 @endforeach
             @else
                 <div class="text-xs text-zinc-600 px-4 mt-4 text-center">
@@ -53,7 +132,7 @@
 
         {{-- username --}}
         <div class="p-4 border-t border-zinc-800 relative" x-data="{ open: false }">
-            {{-- DROPDOWN MENU (Tetap sama) --}}
+            {{-- DROPDOWN MENU --}}
             <div
                 x-show="open"
                 @click.outside="open = false"
@@ -81,7 +160,7 @@
                 </div>
             </div>
 
-            {{-- USER TRIGGER BUTTON (Tetap sama) --}}
+            {{-- USER TRIGGER BUTTON --}}
             <button
                 @click="open = !open"
                 class="w-full flex items-center gap-3 hover:bg-zinc-800 p-2 rounded-lg transition text-left group"
@@ -137,28 +216,23 @@
                                 {{ $msg['content'] }}
                             </div>
 
-                            {{-- 3. ACTION BUTTONS --}}
+                            {{-- ACTION BUTTONS --}}
                             <div class="flex items-start pt-1 gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity duration-200">
-
                                 {{-- Tombol Copy --}}
                                 <div x-data="{ copied: false }" class="relative group/btn">
                                     <button
                                         @click="navigator.clipboard.writeText(document.getElementById('msg-{{ $key }}').innerText); copied = true; setTimeout(() => copied = false, 2000);"
                                         class="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition">
 
-                                        {{-- Ikon Copy (Muncul saat belum di-copy) --}}
                                         <svg x-show="!copied" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                         </svg>
 
-                                        {{-- Ikon Checklist (Muncul saat sudah di-copy) --}}
                                         <svg x-show="copied" style="display: none;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500">
                                             <polyline points="20 6 9 17 4 12"></polyline>
                                         </svg>
                                     </button>
-
-                                    {{-- Tooltip Copy --}}
                                     <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover/btn:block bg-gray-200 text-zinc-900 text-xs py-1 px-2 rounded shadow-lg whitespace-nowrap z-50 font-medium">
                                         <span x-text="copied ? 'Copied!' : 'Copy prompt'"></span>
                                     </div>
@@ -177,7 +251,6 @@
                                                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                                             </svg>
                                         </button>
-
                                         <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover/btn:block bg-gray-200 text-zinc-900 text-xs py-1 px-2 rounded shadow-lg whitespace-nowrap z-50 font-medium">
                                             Edit prompt
                                         </div>
@@ -190,14 +263,6 @@
             </div>
         </div>
 
-        <script>
-            function copyToClipboard(elementId) {
-                const text = document.getElementById(elementId).innerText;
-                navigator.clipboard.writeText(text).then(() => {
-                    console.log('Text copied to clipboard');
-                });
-            }
-        </script>
         {{-- input chat --}}
         <div class="p-6 w-full max-w-4xl mx-auto">
             <form wire:submit.prevent="sendMessage" class="relative">
@@ -209,14 +274,57 @@
                     autofocus
                 >
                 <button type="submit"
-                    class="absolute rounded-2xl right-2 top-2 p-3 bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95">
+                        class="absolute rounded-2xl right-2 top-2 p-3 bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
             </form>
             <div class="text-center mt-3">
                 <span class="text-xs text-zinc-500">AI can make mistakes. Please verify important information.</span>
             </div>
-        </div>
 
+            @if($confirmingDeletion)
+            <div
+                class="fixed inset-0 z-[999] flex items-center justify-center px-4 py-6 sm:px-0"
+                wire:keydown.escape="$set('confirmingDeletion', false)"
+            >
+                {{-- Backdrop Gelap --}}
+                <div
+                    wire:click="$set('confirmingDeletion', false)"
+                    class="fixed inset-0 transform transition-all bg-black/80 backdrop-blur-sm"
+                ></div>
+
+                {{-- Kotak Modal --}}
+                <div class="relative bg-zinc-900 rounded-lg text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-lg w-full border border-zinc-700">
+                    <div class="bg-zinc-900 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-white">Delete Chat?</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-zinc-400">
+                                        Are you sure you want to delete this chat? This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-zinc-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-zinc-800 gap-2">
+                        {{-- Tombol YES DELETE --}}
+                        <button wire:click="deleteChat" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm items-center">
+                            <svg wire:loading wire:target="deleteChat" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            Delete
+                        </button>
+                        <button wire:click="$set('confirmingDeletion', false)" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-zinc-600 shadow-sm px-4 py-2 bg-zinc-800 text-base font-medium text-zinc-300 hover:text-white hover:bg-zinc-700 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
     </main>
 </div>

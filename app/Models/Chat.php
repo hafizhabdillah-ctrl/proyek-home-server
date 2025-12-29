@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Chat extends Model
 {
-    use HasFactory;
-
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id',
+        'title',
+        'is_pinned',
+    ];
 
     public function messages()
     {

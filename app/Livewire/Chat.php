@@ -13,33 +13,27 @@ class Chat extends Component
     public $messages = [];
     public $chatId = null;
     public $histories = [];
-
-    // --- Tambahkan Query String agar URL rapi (Opsional tapi bagus) ---
-    // protected $queryString = ['chatId'];
+    public $confirmingDeletion = false;
+    public $chatIdToDelete = null;
 
     public function mount()
     {
-        // Pastikan saat pertama buka, history termuat
         $this->loadHistories();
-
-        // Jika ada chatId di URL/Session, load chatnya (Opsional logic)
     }
 
     public function loadHistories()
     {
         $this->histories = ChatModel::where('user_id', Auth::id())
-            ->latest()
+            ->orderBy('is_pinned', 'desc')
+            ->orderBy('updated_at', 'desc')
             ->get();
     }
 
     public function newChat()
     {
-        // 1. Reset semua variabel state
         $this->chatId = null;
         $this->messages = [];
         $this->userMessage = '';
-
-        // 2. (Opsional) Reset validasi jika ada
         $this->resetValidation();
     }
 
@@ -58,39 +52,30 @@ class Chat extends Component
 
     public function sendMessage()
     {
-        // Validasi input kosong
         if (trim($this->userMessage) === '') return;
 
-        // Simpan pesan user ke array tampilan sementara
         $this->messages[] = ['role' => 'user', 'content' => $this->userMessage];
 
-        // LOGIC PENTING: Cek apakah ini chat baru?
         if (!$this->chatId) {
-            // Buat Chat Baru di Database
             $createdChat = ChatModel::create([
                 'user_id' => Auth::id(),
-                'title' => substr($this->userMessage, 0, 30) // Judul otomatis dari pesan pertama
+                'title' => substr($this->userMessage, 0, 30)
             ]);
 
-            // Set chatId ke ID yang baru dibuat
             $this->chatId = $createdChat->id;
 
-            // Refresh sidebar history agar judul baru muncul
             $this->loadHistories();
         }
 
-        // Simpan pesan ke database (sekarang $this->chatId pasti sudah ada isinya)
         Message::create([
             'chat_id' => $this->chatId,
             'role' => 'user',
             'content' => $this->userMessage
         ]);
 
-        // Reset input field
         $currentMessage = $this->userMessage;
         $this->userMessage = '';
 
-        // --- SIMULASI BALASAN AI ---
         $responseText = "Balasan untuk: " . $currentMessage;
 
         $this->messages[] = ['role' => 'assistant', 'content' => $responseText];
@@ -100,6 +85,51 @@ class Chat extends Component
             'role' => 'assistant',
             'content' => $responseText
         ]);
+
+        ChatModel::where('id', $this->chatId)->touch();
+        $this->loadHistories();
+    }
+
+    public function togglePin($id)
+    {
+        $chat = ChatModel::where('id', $id)->where('user_id', Auth::id())->first();
+        if ($chat) {
+            $chat->is_pinned = !$chat->is_pinned;
+            $chat->save();
+            $this->loadHistories(); // Refresh list agar posisi berubah
+        }
+    }
+
+    public function renameChat($id, $newTitle)
+    {
+        $chat = ChatModel::where('id', $id)->where('user_id', Auth::id())->first();
+        if ($chat && trim($newTitle) !== '') {
+            $chat->title = $newTitle;
+            $chat->save();
+            $this->loadHistories(); // Refresh list agar nama berubah
+        }
+    }
+
+    public function deleteChat()
+    {
+        $chat = ChatModel::find($this->chatIdToDelete);
+
+        if ($chat && $chat->user_id == auth()->id()) {
+            $chat->delete();
+
+            if ($this->chatId == $this->chatIdToDelete) {
+                return redirect()->route('chat');
+            }
+        }
+
+        $this->confirmingDeletion = false;
+        $this->chatIdToDelete = null;
+    }
+
+    public function confirmDelete($id)
+    {
+        $this->confirmingDeletion = true;
+        $this->chatIdToDelete = $id;
     }
 
     public function render()
