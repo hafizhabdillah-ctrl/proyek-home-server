@@ -14,19 +14,31 @@ class Register extends Component
     public $name = '';
     public $email = '';
     public $password = '';
-    public $confirmpassword = '';
+    public $password_confirmation = '';
     public $remember = false;
-
-    // Validation rules
-    protected $rules = [
-        'name' => 'required|min:3',
-        'email' => 'required|email|unique:users,email',
-        'password' => 'required|min:6',
-        'confirmpassword' => 'required|same:password', // Pastikan sama dengan password
-    ];
 
     public function register()
     {
+
+        $rules = [
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ];
+
+        $messages = [
+            'name.required'     => 'Nama tidak boleh kosong',
+
+            'email.required'    => 'Email tidak boleh kosong',
+            'email.email'       => 'Format email salah',
+            'email.unique'      => 'Email ini sudah terdaftar',
+
+            'password.required' => 'Password harus diisi',
+            'password.min'      => 'Password minimal 8 karakter',
+            'password.confirmed'=> 'Password konfirmasi tidak cocok'
+        ];
+
+        $validated = $this->validate($rules, $messages);
 
         $user = User::create([
             'name' => $this->name,

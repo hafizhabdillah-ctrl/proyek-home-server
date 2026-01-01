@@ -1,10 +1,9 @@
-{{-- KONTAINER UTAMA: Latar belakang putih penuh --}}
+{{-- Kontainer Utama --}}
 <div class="min-h-screen w-full flex items-center justify-center bg-gray-50 p-4">
 
-    {{-- KARTU LOGIN: Kotak gradien hijau di tengah --}}
+    {{-- Green Box --}}
     <div class="w-full max-w-lg bg-gradient-to-tr from-emerald-300 via-green-400 to-teal-500 p-8 rounded-3xl shadow-2xl flex flex-col items-center relative overflow-hidden">
 
-        {{-- Hiasan latar belakang (opsional, agar lebih dinamis) --}}
         <div class="absolute -top-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
         <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
 
@@ -13,7 +12,7 @@
         </div>
 
         <div class="w-full space-y-5 relative z-10">
-            {{-- Bagian Email Address --}}
+            {{-- Email Address --}}
             <div class="relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-white z-10 pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
@@ -25,7 +24,7 @@
                 @error('email') <span class="text-white text-xs mt-1 block ml-4">{{ $message }}</span> @enderror
             </div>
 
-            {{-- Bagian Password --}}
+            {{-- Password --}}
             <div class="relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-white z-10 pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
@@ -49,7 +48,7 @@
                 </a>
             </div>
 
-            {{-- Button Login --}}
+            {{-- Login Button --}}
             <button wire:click="login" wire:loading.attr="disabled"
                     class="w-full bg-white text-emerald-700 font-bold py-4 rounded-full shadow-lg hover:bg-emerald-50 hover:shadow-xl transition transform active:scale-[0.98] uppercase tracking-widest text-lg mt-4 disabled:opacity-70">
                 <span wire:loading.remove>LOGIN</span>
@@ -62,7 +61,7 @@
                 </span>
             </button>
 
-            {{-- Button Register --}}
+            {{-- Register Button --}}
             <a href="{{ route('register') }}" wire:navigate class="w-full bg-white text-emerald-700 font-bold py-4 rounded-full shadow-lg hover:bg-emerald-50 hover:shadow-xl transition transform active:scale-[0.98] uppercase tracking-widest text-lg mt-4 block text-center">
                 REGISTER
             </a>

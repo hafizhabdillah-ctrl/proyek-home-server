@@ -9,7 +9,6 @@ return new class extends Migration
     public function up()
     {
         Schema::table('chats', function (Blueprint $table) {
-            // Menambahkan kolom boolean, default false (tidak dipin)
             $table->boolean('is_pinned')->default(false)->after('title');
         });
     }

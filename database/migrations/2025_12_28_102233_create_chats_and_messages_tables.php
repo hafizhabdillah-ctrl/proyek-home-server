@@ -8,16 +8,15 @@ return new class extends Migration
 {
     public function up()
     {
-        // 1. Tabel Chats
+        // Chats Table
         Schema::create('chats', function (Blueprint $table) {
             $table->id();
-            // Pastikan baris ini ada:
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('title')->nullable();
             $table->timestamps();
         });
 
-        // 2. Tabel Messages
+        // Messages Table
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('chat_id')->constrained('chats')->onDelete('cascade');
