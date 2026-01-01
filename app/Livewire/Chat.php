@@ -2,31 +2,27 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\Chat as ChatModel;
 use App\Models\Message;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Computed;
 
 class Chat extends Component
 {
     public $userMessage = '';
     public $messages = [];
     public $chatId = null;
-    public $histories = [];
+    public $isRenaming = false;
+    public $renamingId = null;
+    public $newName = '';
     public $confirmingDeletion = false;
     public $chatIdToDelete = null;
 
     public function mount()
     {
-        $this->loadHistories();
-    }
-
-    public function loadHistories()
-    {
-        $this->histories = ChatModel::where('user_id', Auth::id())
-            ->orderBy('is_pinned', 'desc')
-            ->orderBy('updated_at', 'desc')
-            ->get();
+        // $this->loadHistories();
     }
 
     public function newChat()
@@ -64,7 +60,8 @@ class Chat extends Component
 
             $this->chatId = $createdChat->id;
 
-            $this->loadHistories();
+            unset($this->histories);
+            unset($this->pinnedChats);
         }
 
         Message::create([
@@ -87,17 +84,8 @@ class Chat extends Component
         ]);
 
         ChatModel::where('id', $this->chatId)->touch();
-        $this->loadHistories();
-    }
-
-    public function togglePin($id)
-    {
-        $chat = ChatModel::where('id', $id)->where('user_id', Auth::id())->first();
-        if ($chat) {
-            $chat->is_pinned = !$chat->is_pinned;
-            $chat->save();
-            $this->loadHistories(); // Refresh list agar posisi berubah
-        }
+        unset($this->histories);
+        unset($this->pinnedChats);
     }
 
     public function renameChat($id, $newTitle)
@@ -106,7 +94,9 @@ class Chat extends Component
         if ($chat && trim($newTitle) !== '') {
             $chat->title = $newTitle;
             $chat->save();
-            $this->loadHistories(); // Refresh list agar nama berubah
+
+            unset($this->histories);
+            unset($this->pinnedChats);
         }
     }
 
@@ -122,6 +112,9 @@ class Chat extends Component
             }
         }
 
+        unset($this->histories);
+        unset($this->pinnedChats);
+
         $this->confirmingDeletion = false;
         $this->chatIdToDelete = null;
     }
@@ -130,6 +123,70 @@ class Chat extends Component
     {
         $this->confirmingDeletion = true;
         $this->chatIdToDelete = $id;
+    }
+
+    public function confirmRename($id, $currentTitle)
+    {
+        $this->renamingId = $id;
+        $this->newName = $currentTitle;
+        $this->isRenaming = true;
+    }
+
+    public function updateTitle()
+    {
+        $this->validate([
+            'newName' => 'required|string|max:50',
+        ]);
+
+        $chat = ChatModel::find($this->renamingId);
+
+        if ($chat) {
+            $chat->title = $this->newName;
+            $chat->save();
+            unset($this->histories);
+
+            unset($this->histories);
+            unset($this->pinnedChats);
+        }
+
+        $this->cancelRename();
+    }
+    public function cancelRename()
+    {
+        $this->isRenaming = false;
+        $this->renamingId = null;
+        $this->newName = '';
+    }
+
+    #[Computed]
+    public function histories()
+    {
+        return \App\Models\Chat::where('user_id', auth()->id())
+            ->where('is_pinned', false) // exclude yang di pin
+            ->orderBy('updated_at', 'desc')
+            ->get();
+    }
+
+    #[Computed]
+    public function pinnedChats()
+    {
+        return \App\Models\Chat::where('user_id', auth()->id())
+            ->where('is_pinned', true) // ambil khusus yang dipin
+            ->orderBy('updated_at', 'desc')
+            ->get();
+    }
+
+    public function togglePin($chatId)
+    {
+        $chat = ChatModel::find($chatId);
+        if ($chat) {
+            $chat->is_pinned = !$chat->is_pinned;
+            $chat->save();
+
+            // Hapus cache kedua computed property agar UI langsung update
+            unset($this->pinnedChats);
+            unset($this->histories);
+        }
     }
 
     public function render()

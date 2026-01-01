@@ -1,4 +1,4 @@
-<div class="flex h-screen bg-zinc-900 text-white overflow-hidden">
+<div class="flex h-screen text-white overflow-hidden relative z-0" style="background-color: #18181b;">
 
     {{-- sidebar sebelah kiri --}}
     <aside class="h-screen w-64 bg-zinc-950 flex flex-col border-r border-zinc-800">
@@ -11,66 +11,47 @@
             </button>
         </div>
 
-        {{-- chat history --}}
-
+        {{-- Chat History --}}
+        {{-- Chat History --}}
         <div
             x-data="{ activeMenuId: null }"
             class="flex-1 overflow-y-auto px-2 space-y-1 mt-2
             [&::-webkit-scrollbar]:w-2
             [&::-webkit-scrollbar-track]:bg-transparent
-          [&::-webkit-scrollbar-thumb]:bg-zinc-700
+            [&::-webkit-scrollbar-thumb]:bg-zinc-700
             [&::-webkit-scrollbar-thumb]:rounded-full"
         >
-            @if(count($histories) > 0)
-                <div class="text-xs font-medium text-zinc-500 px-2 py-2 mb-1">History</div>
+            {{-- 1. BAGIAN PINNED CHATS --}}
+            @if(count($this->pinnedChats) > 0)
+                <div class="text-xs font-medium text-zinc-500 px-2 py-2 mb-1 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+                    Pinned
+                </div>
 
-                @foreach($histories as $history)
-                    <div
-                        x-data="{isRenaming: false, newName: '{{ $history->title }}'}"
-                        class="group relative flex items-center rounded-lg hover:bg-zinc-800 transition-colors {{ $chatId === $history->id ? 'bg-zinc-800' : '' }}">
+                @foreach($this->pinnedChats as $history)
+                    {{-- ITEM CHAT (COPY 1 UNTUK PINNED) --}}
+                    <div class="group relative flex items-center rounded-lg hover:bg-zinc-800 transition-colors {{ $chatId === $history->id ? 'bg-zinc-800' : '' }}">
                         <button
-                            x-show="!isRenaming"
                             wire:click="loadChat({{ $history->id }})"
                             class="flex-1 text-left px-3 py-2 text-sm truncate w-full relative z-0 focus:outline-none {{ $chatId === $history->id ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200' }}"
                         >
-                            @if($history->is_pinned)
-                                <svg class="inline-block w-3 h-3 mr-1 text-zinc-400 rotate-45" fill="currentColor" viewBox="0 0 24 24"><path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" /></svg>
-                            @endif
+                            <svg class="inline-block w-3 h-3 mr-1 text-emerald-500 rotate-45" fill="currentColor" viewBox="0 0 24 24"><path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" /></svg>
                             {{ $history->title ?? 'New Chat' }}
                         </button>
 
-                        {{-- Mode Rename (Input Form) --}}
-                        <form
-                            x-show="isRenaming"
-                            @submit.prevent="$wire.renameChat({{ $history->id }}, newName); isRenaming = false;"
-                            class="flex-1 px-1 py-1"
-                            style="display: none;"
-                        >
-                            <input
-                                x-model="newName"
-                                @keydown.escape="isRenaming = false; newName = '{{ $history->title }}'"
-                                @click.outside="isRenaming = false; newName = '{{ $history->title }}'"
-                                type="text"
-                                class="w-full bg-zinc-950 text-white text-sm px-2 py-1 rounded border border-zinc-600 focus:outline-none focus:border-emerald-500"
-                                autofocus
-                            >
-                        </form>
-
-                        {{-- Tombol Titik Tiga (Menu Trigger) --}}
-                        <div class="absolute right-1 z-10" x-show="!isRenaming">
+                        <div class="absolute right-1 z-10">
                             <button
                                 @click="activeMenuId = (activeMenuId === {{ $history->id }} ? null : {{ $history->id }})"
                                 class="p-1 rounded-md transition-opacity duration-200 focus:outline-none"
                                 :class="{
-                            'opacity-100 bg-zinc-700 text-white': activeMenuId === {{ $history->id }},
-                            'opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-white hover:bg-zinc-700': activeMenuId === null,
-                            'opacity-0': activeMenuId !== null && activeMenuId !== {{ $history->id }}
-                        }"
+                                    'opacity-100 bg-zinc-700 text-white': activeMenuId === {{ $history->id }},
+                                    'opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-white hover:bg-zinc-700': activeMenuId === null,
+                                    'opacity-0': activeMenuId !== null && activeMenuId !== {{ $history->id }}
+                                }"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
                             </button>
 
-                            {{-- Dropdown Menu --}}
                             <div
                                 x-show="activeMenuId === {{ $history->id }}"
                                 @click.outside="activeMenuId = null"
@@ -79,31 +60,15 @@
                                 style="display: none;"
                             >
                                 <div class="flex flex-col py-1">
-                                    {{-- Action: Pin --}}
-                                    <button
-                                        wire:click="togglePin({{ $history->id }})"
-                                        @click="activeMenuId = null"
-                                        class="text-left px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2 focus:outline-none"
-                                    >
+                                    <button wire:click="togglePin({{ $history->id }})" @click="activeMenuId = null" class="text-left px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2 focus:outline-none">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
-                                        {{ $history->is_pinned ? 'Unpin' : 'Pin' }}
+                                        Unpin
                                     </button>
-
-                                    {{-- Action: Rename --}}
-                                    <button
-                                        @click="isRenaming = true; activeMenuId = null; $nextTick(() => $el.closest('.group').querySelector('input').focus())"
-                                        class="text-left px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2"
-                                    >
+                                    <button wire:click="confirmRename({{ $history->id }}, '{{ $history->title }}')" @click="activeMenuId = null" class="text-left px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                         Rename
                                     </button>
-
-                                    {{-- Action Delete --}}
-                                    <button
-                                        wire:click="confirmDelete({{ $history->id }})"
-                                        @click="activeMenuId = null"
-                                        class="text-left px-3 py-2 text-xs text-red-400 hover:bg-red-900/30 hover:text-red-300 flex items-center gap-2 border-t border-zinc-800 mt-1"
-                                    >
+                                    <button wire:click="confirmDelete({{ $history->id }})" @click="activeMenuId = null" class="text-left px-3 py-2 text-xs text-red-400 hover:bg-red-900/30 hover:text-red-300 flex items-center gap-2 border-t border-zinc-800 mt-1">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                         Delete
                                     </button>
@@ -112,14 +77,74 @@
                         </div>
                     </div>
                 @endforeach
-            @else
+
+                <div class="border-b border-zinc-800 my-2 mx-2"></div>
+            @endif
+
+
+            {{-- 2. BAGIAN HISTORY BIASA (Unpinned) --}}
+            @if(count($this->histories) > 0)
+                <div class="text-xs font-medium text-zinc-500 px-2 py-2 mb-1">History</div>
+
+                @foreach($this->histories as $history)
+                    {{-- ITEM CHAT (COPY 2 UNTUK HISTORY BIASA) --}}
+                    <div class="group relative flex items-center rounded-lg hover:bg-zinc-800 transition-colors {{ $chatId === $history->id ? 'bg-zinc-800' : '' }}">
+                        <button
+                            wire:click="loadChat({{ $history->id }})"
+                            class="flex-1 text-left px-3 py-2 text-sm truncate w-full relative z-0 focus:outline-none {{ $chatId === $history->id ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200' }}"
+                        >
+                            {{-- Tidak ada icon pin disini --}}
+                            {{ $history->title ?? 'New Chat' }}
+                        </button>
+
+                        <div class="absolute right-1 z-10">
+                            <button
+                                @click="activeMenuId = (activeMenuId === {{ $history->id }} ? null : {{ $history->id }})"
+                                class="p-1 rounded-md transition-opacity duration-200 focus:outline-none"
+                                :class="{
+                                    'opacity-100 bg-zinc-700 text-white': activeMenuId === {{ $history->id }},
+                                    'opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-white hover:bg-zinc-700': activeMenuId === null,
+                                    'opacity-0': activeMenuId !== null && activeMenuId !== {{ $history->id }}
+                                }"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                            </button>
+
+                            <div
+                                x-show="activeMenuId === {{ $history->id }}"
+                                @click.outside="activeMenuId = null"
+                                x-transition.origin.top.right
+                                class="absolute right-0 top-full mt-1 w-32 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-50 overflow-hidden"
+                                style="display: none;"
+                            >
+                                <div class="flex flex-col py-1">
+                                    <button wire:click="togglePin({{ $history->id }})" @click="activeMenuId = null" class="text-left px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2 focus:outline-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+                                        Pin
+                                    </button>
+                                    <button wire:click="confirmRename({{ $history->id }}, '{{ $history->title }}')" @click="activeMenuId = null" class="text-left px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                        Rename
+                                    </button>
+                                    <button wire:click="confirmDelete({{ $history->id }})" @click="activeMenuId = null" class="text-left px-3 py-2 text-xs text-red-400 hover:bg-red-900/30 hover:text-red-300 flex items-center gap-2 border-t border-zinc-800 mt-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endif
+
+            @if(count($this->pinnedChats) == 0 && count($this->histories) == 0)
                 <div class="text-xs text-zinc-600 px-4 mt-4 text-center">
                     Belum ada riwayat chat.
                 </div>
             @endif
         </div>
 
-        {{-- tombol settings --}}
+        {{-- Settings Button --}}
         <div class="px-2 pt-2 mb-2 mt-auto">
             <button class="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white rounded-lg transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -132,7 +157,7 @@
 
         {{-- username --}}
         <div class="p-4 border-t border-zinc-800 relative" x-data="{ open: false }">
-            {{-- DROPDOWN MENU --}}
+            {{-- Dropdown Menu --}}
             <div
                 x-show="open"
                 @click.outside="open = false"
@@ -160,7 +185,7 @@
                 </div>
             </div>
 
-            {{-- USER TRIGGER BUTTON --}}
+            {{-- Username Dropdown Trigger --}}
             <button
                 @click="open = !open"
                 class="w-full flex items-center gap-3 hover:bg-zinc-800 p-2 rounded-lg transition text-left group"
@@ -184,7 +209,7 @@
             <span>Ollama</span>
         </div>
 
-        {{-- display chat --}}
+        {{-- Display Chat --}}
         <div class="flex-1 overflow-y-auto scroll-smooth" id="chat-container">
             <div class="max-w-4xl mx-auto w-full p-6 space-y-6">
                 @if(count($messages) == 0)
@@ -211,12 +236,12 @@
                                 @endif
                             </div>
 
-                            {{-- BUBBLE TEXT --}}
+                            {{-- Bubble Text --}}
                             <div id="msg-{{ $key }}" class="max-w-[85%] px-4 py-2.5 rounded-2xl text-base leading-relaxed {{ $msg['role'] === 'user' ? 'bg-zinc-800 text-white border border-zinc-700/50' : 'text-zinc-200' }}">
                                 {{ $msg['content'] }}
                             </div>
 
-                            {{-- ACTION BUTTONS --}}
+                            {{-- Action Button --}}
                             <div class="flex items-start pt-1 gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity duration-200">
                                 {{-- Tombol Copy --}}
                                 <div x-data="{ copied: false }" class="relative group/btn">
@@ -263,7 +288,7 @@
             </div>
         </div>
 
-        {{-- input chat --}}
+        {{-- Input Chat --}}
         <div class="p-6 w-full max-w-4xl mx-auto">
             <form wire:submit.prevent="sendMessage" class="relative">
                 <input
@@ -282,6 +307,7 @@
                 <span class="text-xs text-zinc-500">AI can make mistakes. Please verify important information.</span>
             </div>
 
+            {{-- Skenario Delete Chat --}}
             @if($confirmingDeletion)
             <div
                 class="fixed inset-0 z-[999] flex items-center justify-center px-4 py-6 sm:px-0"
@@ -293,7 +319,7 @@
                     class="fixed inset-0 transform transition-all bg-black/80 backdrop-blur-sm"
                 ></div>
 
-                {{-- Kotak Modal --}}
+                {{-- Confirmation Box --}}
                 <div class="relative bg-zinc-900 rounded-lg text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-lg w-full border border-zinc-700">
                     <div class="bg-zinc-900 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
@@ -313,7 +339,7 @@
                         </div>
                     </div>
                     <div class="bg-zinc-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-zinc-800 gap-2">
-                        {{-- Tombol YES DELETE --}}
+                        {{-- Confirm Delete --}}
                         <button wire:click="deleteChat" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm items-center">
                             <svg wire:loading wire:target="deleteChat" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                             Delete
@@ -324,6 +350,53 @@
                     </div>
                 </div>
             </div>
+            @endif
+
+            {{-- Skenario Rename Chat --}}
+            @if($isRenaming)
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                     x-data @keydown.escape.window="$wire.cancelRename()">
+
+                    <div class="bg-[#1a1a1a] border border-gray-700 w-full max-w-md rounded-xl shadow-2xl overflow-hidden transform transition-all"
+                         @click.away="$wire.cancelRename()">
+
+                        <div class="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                            <h3 class="text-lg font-medium text-white">Rename this chat</h3>
+                            <button wire:click="cancelRename" class="text-gray-400 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="p-6">
+                            <form wire:submit.prevent="updateTitle">
+                                <label class="block text-sm text-gray-400 mb-2">Chat Name</label>
+
+                                <input type="text"
+                                       wire:model="newName"
+                                       autofocus
+                                       class="w-full bg-[#0a0a0a] border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                                       placeholder="Enter new name...">
+
+                                @error('newName') <span class="text-red-400 text-xs mt-1 block">{{ $message }}</span> @enderror
+
+                                <div class="flex justify-end gap-3 mt-6">
+                                    <button type="button"
+                                            wire:click="cancelRename"
+                                            class="px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                                        Cancel
+                                    </button>
+
+                                    <button type="submit"
+                                            class="px-4 py-2 rounded-lg text-sm bg-green-600 hover:bg-green-500 text-white font-medium shadow-lg transition">
+                                        Rename
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             @endif
         </div>
     </main>

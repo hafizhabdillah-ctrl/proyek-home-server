@@ -6,10 +6,12 @@
     <title>{{ $title ?? 'Llama Laravel' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="h-screen w-full bg-white dark:bg-zinc-800 overflow-hidden">
+<body class="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
 
 <main class="w-full h-full">
     {{ $slot }}
+
+    @fluxScripts
 </main>
 
 </body>
