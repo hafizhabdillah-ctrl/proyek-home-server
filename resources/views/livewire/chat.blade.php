@@ -294,7 +294,7 @@
                 <input
                     wire:model="userMessage"
                     type="text"
-                    placeholder="Message Llama..."
+                    placeholder="Message Ollama..."
                     class="w-full bg-zinc-800 text-white placeholder-zinc-400 border border-zinc-700 rounded-xl px-6 py-4 pr-12 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-lg"
                     autofocus
                 >

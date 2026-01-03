@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
+use Illuminate\Support\Facades\Http;
 
 class Chat extends Component
 {
@@ -49,41 +50,78 @@ class Chat extends Component
     public function sendMessage()
     {
         if (trim($this->userMessage) === '') return;
+        set_time_limit(120);
 
         $this->messages[] = ['role' => 'user', 'content' => $this->userMessage];
+        $currentMessage = $this->userMessage;
+        $this->userMessage = ''; // Reset input box
 
         if (!$this->chatId) {
             $createdChat = ChatModel::create([
                 'user_id' => Auth::id(),
-                'title' => substr($this->userMessage, 0, 30)
+                'title' => substr($currentMessage, 0, 30) // Judul otomatis dari 30 huruf pertama
             ]);
-
             $this->chatId = $createdChat->id;
 
+            // Refresh sidebar
             unset($this->histories);
             unset($this->pinnedChats);
         }
 
+        // Simpan pesan User ke Database
         Message::create([
             'chat_id' => $this->chatId,
             'role' => 'user',
-            'content' => $this->userMessage
+            'content' => $currentMessage
         ]);
 
-        $currentMessage = $this->userMessage;
-        $this->userMessage = '';
+        $response = Http::timeout(120)->post( ... );
 
-        $responseText = "Balasan untuk: " . $currentMessage;
+        $context = Message::where('chat_id', $this->chatId)
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(fn($msg) => [
+                'role' => $msg->role,
+                'content' => $msg->content
+            ])
+            ->toArray();
 
+        $responseText = '';
+
+        try {
+            // API Ollama
+            $response = Http::timeout(300) // Timeout 5 menit (Gemma di PC biasa mungkin butuh waktu)
+            ->post(env('OLLAMA_API_URL', 'http://localhost:11434/api/chat'), [
+                'model' => env('OLLAMA_MODEL', 'gemma3:8b'), // Pastikan sesuai .env
+                'messages' => $context,
+                'stream' => false, // Matikan streaming agar lebih mudah ditangani
+            ]);
+
+            if ($response->successful()) {
+                // Ambil jawaban dari JSON Ollama
+                $responseText = $response->json()['message']['content'];
+            } else {
+                $responseText = "Error dari Ollama: " . $response->status();
+            }
+
+        } catch (\Exception $e) {
+            $responseText = "Gagal terhubung ke Ollama. Pastikan aplikasi Ollama sudah berjalan. Error: " . $e->getMessage();
+        }
+
+        // Tampilkan Balasan AI di Layar
         $this->messages[] = ['role' => 'assistant', 'content' => $responseText];
 
+        // Simpan Balasan AI ke Database
         Message::create([
             'chat_id' => $this->chatId,
             'role' => 'assistant',
             'content' => $responseText
         ]);
 
+        // Update waktu chat agar naik ke paling atas di History
         ChatModel::where('id', $this->chatId)->touch();
+
+        // Refresh sidebar
         unset($this->histories);
         unset($this->pinnedChats);
     }
