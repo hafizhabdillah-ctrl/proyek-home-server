@@ -23,7 +23,12 @@ class Chat extends Component
 
     public function mount()
     {
-        // $this->loadHistories();
+        $this->newChat();
+    }
+
+    public function render()
+    {
+        return view('livewire.chat');
     }
 
     public function newChat()
@@ -47,83 +52,71 @@ class Chat extends Component
         }
     }
 
+    public function loadMessages()
+    {
+        $this->messages = Message::orderBy('created_at', 'asc')->get();
+    }
+
     public function sendMessage()
     {
-        if (trim($this->userMessage) === '') return;
-        set_time_limit(120);
-
-        $this->messages[] = ['role' => 'user', 'content' => $this->userMessage];
-        $currentMessage = $this->userMessage;
-        $this->userMessage = ''; // Reset input box
+        // Validasi variabel
+        $this->validate([
+            'userMessage' => 'required|string'
+        ]);
 
         if (!$this->chatId) {
-            $createdChat = ChatModel::create([
+            $chat = ChatModel::create([
                 'user_id' => Auth::id(),
-                'title' => substr($currentMessage, 0, 30) // Judul otomatis dari 30 huruf pertama
+                'title' => 'New Chat'
             ]);
-            $this->chatId = $createdChat->id;
-
-            // Refresh sidebar
-            unset($this->histories);
-            unset($this->pinnedChats);
+            $this->chatId = $chat->id;
         }
 
-        // Simpan pesan User ke Database
         Message::create([
             'chat_id' => $this->chatId,
             'role' => 'user',
-            'content' => $currentMessage
+            'content' => $this->userMessage
         ]);
 
-        $response = Http::timeout(120)->post( ... );
-
-        $context = Message::where('chat_id', $this->chatId)
-            ->orderBy('created_at', 'asc')
-            ->get()
-            ->map(fn($msg) => [
-                'role' => $msg->role,
-                'content' => $msg->content
-            ])
-            ->toArray();
-
-        $responseText = '';
-
-        try {
-            // API Ollama
-            $response = Http::timeout(300) // Timeout 5 menit (Gemma di PC biasa mungkin butuh waktu)
-            ->post(env('OLLAMA_API_URL', 'http://localhost:11434/api/chat'), [
-                'model' => env('OLLAMA_MODEL', 'gemma3:8b'), // Pastikan sesuai .env
-                'messages' => $context,
-                'stream' => false, // Matikan streaming agar lebih mudah ditangani
-            ]);
-
-            if ($response->successful()) {
-                // Ambil jawaban dari JSON Ollama
-                $responseText = $response->json()['message']['content'];
-            } else {
-                $responseText = "Error dari Ollama: " . $response->status();
-            }
-
-        } catch (\Exception $e) {
-            $responseText = "Gagal terhubung ke Ollama. Pastikan aplikasi Ollama sudah berjalan. Error: " . $e->getMessage();
+        $chat = ChatModel::find($this->chatId);
+        if ($chat) {
+            $chat->touch();
         }
 
-        // Tampilkan Balasan AI di Layar
-        $this->messages[] = ['role' => 'assistant', 'content' => $responseText];
+        unset($this->histories);
+        unset($this->pinnedChats);
 
-        // Simpan Balasan AI ke Database
+        $this->userMessage = '';
+        $this->loadChat($this->chatId);
+        $this->dispatch('start-generating-reply');
+    }
+
+    public function generateAiResponse()
+    {
+        set_time_limit(120);
+        $lastUserMessage = Message::where('chat_id', $this->chatId)
+            ->where('role', 'user')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (!$lastUserMessage) return;
+        $response = Http::timeout(120)->post('http://localhost:11434/api/generate', [
+            'model' => 'llama3',
+            'prompt' => $lastUserMessage->content,
+            'stream' => false
+        ]);
+
+        $botReply = $response->json()['response'] ?? 'Error: No response from AI';
+
+        // Simpan balasan AI ke database
         Message::create([
             'chat_id' => $this->chatId,
             'role' => 'assistant',
-            'content' => $responseText
+            'content' => $botReply
         ]);
 
-        // Update waktu chat agar naik ke paling atas di History
-        ChatModel::where('id', $this->chatId)->touch();
-
-        // Refresh sidebar
-        unset($this->histories);
-        unset($this->pinnedChats);
+        // Refresh pesan lagi
+        $this->loadChat($this->chatId);
     }
 
     public function renameChat($id, $newTitle)
@@ -189,6 +182,7 @@ class Chat extends Component
 
         $this->cancelRename();
     }
+
     public function cancelRename()
     {
         $this->isRenaming = false;
@@ -225,10 +219,5 @@ class Chat extends Component
             unset($this->pinnedChats);
             unset($this->histories);
         }
-    }
-
-    public function render()
-    {
-        return view('livewire.chat');
     }
 }

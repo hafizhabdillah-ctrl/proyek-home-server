@@ -12,7 +12,6 @@
         </div>
 
         {{-- Chat History --}}
-        {{-- Chat History --}}
         <div
             x-data="{ activeMenuId: null }"
             class="flex-1 overflow-y-auto px-2 space-y-1 mt-2
@@ -21,7 +20,7 @@
             [&::-webkit-scrollbar-thumb]:bg-zinc-700
             [&::-webkit-scrollbar-thumb]:rounded-full"
         >
-            {{-- 1. BAGIAN PINNED CHATS --}}
+            {{-- PINNED CHATS --}}
             @if(count($this->pinnedChats) > 0)
                 <div class="text-xs font-medium text-zinc-500 px-2 py-2 mb-1 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
@@ -82,7 +81,7 @@
             @endif
 
 
-            {{-- 2. BAGIAN HISTORY BIASA (Unpinned) --}}
+            {{-- Unpinned --}}
             @if(count($this->histories) > 0)
                 <div class="text-xs font-medium text-zinc-500 px-2 py-2 mb-1">History</div>
 
@@ -285,6 +284,19 @@
                         </div>
                     @endforeach
                 @endif
+                    <div wire:loading wire:target="generateAiResponse" class="flex gap-4">
+                        <div class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center bg-emerald-600/50 animate-pulse">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="animate-spin">
+                                <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                                <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                            </svg>
+                        </div>
+
+                        {{-- Teks Loading --}}
+                        <div class="flex items-center gap-2 text-zinc-400 mt-1 animate-pulse">
+                            <span class="text-sm font-medium">Deciphering the Noise...</span>
+                        </div>
+                    </div>
             </div>
         </div>
 
@@ -297,6 +309,8 @@
                     placeholder="Message Ollama..."
                     class="w-full bg-zinc-800 text-white placeholder-zinc-400 border border-zinc-700 rounded-xl px-6 py-4 pr-12 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-lg"
                     autofocus
+                    wire:loading.attr="disabled"
+                    wire:target="generateAiResponse"
                 >
                 <button type="submit"
                         class="absolute rounded-2xl right-2 top-2 p-3 bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95">
@@ -400,4 +414,22 @@
             @endif
         </div>
     </main>
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.on('start-generating-reply', () => {
+                const chatContainer = document.getElementById('chat-container');
+                setTimeout(() => {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }, 100);
+
+                @this.generateAiResponse();
+            });
+        });
+        document.addEventListener('livewire:updated', () => {
+            const chatContainer = document.getElementById('chat-container');
+            if(chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight - 200) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        });
+    </script>
 </div>
