@@ -102,7 +102,7 @@
             if (!$lastUserMessage) return;
 
             $response = Http::timeout(300)->post(env('OLLAMA_API_URL', 'http://127.0.0.1:11434/api/generate'), [
-                'model' => env('OLLAMA_MODEL', 'llama3:latest'),
+                'model' => env('OLLAMA_MODEL', 'tinyllama'),
                 'prompt' => $lastUserMessage->content,
                 'stream' => false
             ]);

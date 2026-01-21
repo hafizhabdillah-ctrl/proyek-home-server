@@ -30,7 +30,6 @@ class Login extends Component
             // Redirect to Chat
             return redirect()->intended(route('chat'));
         }
-
         // Error handling
         $this->addError('email', 'Email atau password yang Anda masukkan salah.');
     }
