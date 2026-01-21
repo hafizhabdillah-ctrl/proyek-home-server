@@ -20,7 +20,7 @@
             [&::-webkit-scrollbar-thumb]:bg-zinc-700
             [&::-webkit-scrollbar-thumb]:rounded-full"
         >
-            {{-- PINNED CHATS --}}
+            {{-- Pinned Chat --}}
             @if(count($this->pinnedChats) > 0)
                 <div class="text-xs font-medium text-zinc-500 px-2 py-2 mb-1 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
@@ -28,7 +28,6 @@
                 </div>
 
                 @foreach($this->pinnedChats as $history)
-                    {{-- ITEM CHAT (COPY 1 UNTUK PINNED) --}}
                     <div class="group relative flex items-center rounded-lg hover:bg-zinc-800 transition-colors {{ $chatId === $history->id ? 'bg-zinc-800' : '' }}">
                         <button
                             wire:click="loadChat({{ $history->id }})"
@@ -92,7 +91,6 @@
                             wire:click="loadChat({{ $history->id }})"
                             class="flex-1 text-left px-3 py-2 text-sm truncate w-full relative z-0 focus:outline-none {{ $chatId === $history->id ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200' }}"
                         >
-                            {{-- Tidak ada icon pin disini --}}
                             {{ $history->title ?? 'New Chat' }}
                         </button>
 
@@ -224,7 +222,7 @@
                     @foreach($messages as $key => $msg)
                         <div class="group/row flex gap-4 {{ $msg['role'] === 'user' ? 'flex-row-reverse' : '' }}">
 
-                            {{-- AVATAR --}}
+                            {{-- avatar --}}
                             <div class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center {{ $msg['role'] === 'assistant' ? 'bg-emerald-600 shadow-lg shadow-emerald-900/20' : 'bg-zinc-600' }}">
                                 @if($msg['role'] === 'assistant')
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -353,7 +351,7 @@
                         </div>
                     </div>
                     <div class="bg-zinc-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-zinc-800 gap-2">
-                        {{-- Confirm Delete --}}
+                        {{-- Button Confirm Delete --}}
                         <button wire:click="deleteChat" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm items-center">
                             <svg wire:loading wire:target="deleteChat" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                             Delete
