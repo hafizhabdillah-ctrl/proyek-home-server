@@ -10,6 +10,8 @@
     use Livewire\Attributes\Computed;
     use Illuminate\Support\Facades\Http;
 
+
+    #[Layout('components.layouts.app')]
     class Chat extends Component
     {
         public $userMessage = '';
