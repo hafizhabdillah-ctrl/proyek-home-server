@@ -28,7 +28,7 @@ class ChatApiController extends Controller
         // SKENARIO 1: Email Tidak Ditemukan
         if (!$user) {
             return response()->json([
-                'status' => 'error',
+                'status' => 'Error',
                 'message' => 'Akses Ditolak: Email tidak terdaftar. Silakan registrasi dahulu.'
             ], 404); // 404 Not Found
         }
