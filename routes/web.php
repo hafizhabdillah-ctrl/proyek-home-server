@@ -9,11 +9,12 @@ use App\Livewire\Chat;
 
 Route::get('/login', Login::class)->name('login');
 Route::get('/register', Register::class)->name('register');
+
 Route::get('/chat', Chat::class)->middleware('auth')->name('chat');
 Route::get('/', Chat::class)->name('chat');
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return auth()->check() ? redirect()->route('chat') : redirect()->route('login');
 });
 
 Route::view('dashboard', 'dashboard')
@@ -31,7 +32,7 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(
             when(
                 Features::canManageTwoFactorAuthentication()
-                    && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword'),
+                && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword'),
                 ['password.confirm'],
                 [],
             ),

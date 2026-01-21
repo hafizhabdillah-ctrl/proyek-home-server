@@ -4,74 +4,82 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http; // Untuk nembak API Ollama
-use Illuminate\Support\Facades\Auth;
-use App\Models\Chat;
-use App\Models\Message;
+use Illuminate\Support\Facades\Http;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class ChatApiController extends Controller
 {
-    public function sendMessage(Request $request)
+    public function chat(Request $request)
     {
-        // Validasi Input
+        // 1. Validasi Input
+        // Kita tidak butuh 'username' di input karena pengecekan via email & password
         $request->validate([
-            'message' => 'required|string',
-            'chat_id' => 'nullable|exists:chats,id',
-            'model'   => 'nullable|string'
+            'email'    => 'required|email',
+            'password' => 'required|string',
+            'prompt'   => 'required|string'
         ]);
 
-        $user = Auth::user(); // Ambil user yang login
-        // Untuk testing awal tanpa login bisa hardcode user_id sementara atau pastikan route dilindungi middleware
+        // 2. LOGIKA AUTENTIKASI KETAT
 
-        // Siapkan Chat ID (Buat baru jika belum ada)
-        $chatId = $request->chat_id;
-        if (!$chatId) {
-            $chat = Chat::create([
-                'user_id' => $user ? $user->id : 1, // Fallback ke ID 1 jika testing tanpa login
-                'title'   => substr($request->message, 0, 30)
-            ]);
-            $chatId = $chat->id;
+        // Cari user berdasarkan email
+        $user = User::where('email', $request->email)->first();
+
+        // SKENARIO 1: Email Tidak Ditemukan
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Akses Ditolak: Email tidak terdaftar. Silakan registrasi dahulu.'
+            ], 404); // 404 Not Found
         }
 
-        // Simpan Pesan User ke Database
-        Message::create([
-            'chat_id' => $chatId,
-            'role'    => 'user',
-            'content' => $request->message
-        ]);
+        // SKENARIO 2: Email Ada, Cek Password
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Akses Ditolak: Password salah.'
+            ], 401); // 401 Unauthorized
+        }
 
-        // Kirim Request ke Ollama (Lokal)
+        // SKENARIO 3: Lolos Validasi (User Valid) -> Lanjut ke Ollama
+
+        $prompt = $request->input('prompt');
+        $model = env('OLLAMA_MODEL', 'tinyllama');
+        $apiUrl = env('OLLAMA_API_URL', 'http://127.0.0.1:11434/api/generate');
+
         try {
-            $response = Http::timeout(120)->post('http://127.0.0.1:11434/api/chat', [
-                'model' => $request->model ?? 'llama3', // Ganti sesuai model Anda (misal: mistral)
-                'messages' => [
-                    ['role' => 'user', 'content' => $request->message]
-                ],
-                'stream' => false, // Kita matikan stream dulu biar gampang
+            $response = Http::timeout(600)->post($apiUrl, [
+                'model'  => $model,
+                'prompt' => $prompt,
+                'stream' => false
             ]);
 
-            // Ambil jawaban dari JSON Ollama
-            $aiContent = $response->json()['message']['content'] ?? 'Error: No response from AI';
+            if ($response->successful()) {
+                $botReply = $response->json()['response'];
+
+                return response()->json([
+                    'status' => 'success',
+                    'user_info' => [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'status' => 'Authenticated'
+                    ],
+                    'response' => $botReply
+                ], 200);
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Ollama sibuk/error',
+                    'details' => $response->body()
+                ], 500);
+            }
 
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Gagal konek ke Ollama. Pastikan Ollama jalan!'], 500);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Koneksi Timeout atau Error Server',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Simpan Jawaban AI ke Database
-        Message::create([
-            'chat_id' => $chatId,
-            'role'    => 'assistant',
-            'content' => $aiContent
-        ]);
-
-        // Return JSON ke User
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'chat_id' => $chatId,
-                'user_message' => $request->message,
-                'ai_response'  => $aiContent
-            ]
-        ]);
     }
 }
