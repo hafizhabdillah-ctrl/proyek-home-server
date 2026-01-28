@@ -13,7 +13,6 @@ class ChatApiController extends Controller
     public function chat(Request $request)
     {
         // 1. Validasi Input
-        // Kita tidak butuh 'username' di input karena pengecekan via email & password
         $request->validate([
             'email'    => 'required|email',
             'password' => 'required|string',
@@ -21,7 +20,6 @@ class ChatApiController extends Controller
         ]);
 
         // 2. LOGIKA AUTENTIKASI KETAT
-
         // Cari user berdasarkan email
         $user = User::where('email', $request->email)->first();
 
@@ -42,9 +40,8 @@ class ChatApiController extends Controller
         }
 
         // SKENARIO 3: Lolos Validasi (User Valid) -> Lanjut ke Ollama
-
         $prompt = $request->input('prompt');
-        $model = env('OLLAMA_MODEL', 'tinyllama');
+        $model = env('OLLAMA_MODEL', 'llama3');
         $apiUrl = env('OLLAMA_API_URL', 'http://127.0.0.1:11434/api/generate');
 
         try {
